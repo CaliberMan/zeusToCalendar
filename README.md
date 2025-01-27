@@ -13,7 +13,7 @@ This project automates the process of downloading an ICS file from the Zeus webs
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/yourusername/zeus-to-google-calendar.git
+    git clone https://github.com/CaliberMan/zeus-to-google-calendar.git
     cd zeus-to-google-calendar
     ```
 
