@@ -1,0 +1,5 @@
+# Environment variables
+.env
+
+# Brave User Data
+brave-user-data/*
