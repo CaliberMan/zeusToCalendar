@@ -3,3 +3,7 @@
 
 # Brave User Data
 brave-user-data/*
+
+# Google OAuth2
+credentials.json
+token.json

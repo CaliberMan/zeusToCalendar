@@ -1,8 +1,68 @@
 import os
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from ics import Calendar
 
 load_dotenv()
+
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+
+def authenticate_google_calendar():
+    """Authenticate with Google Calendar API and return a service object."""
+    creds = None
+    # Token storage
+    token_path = 'token.json'
+
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+        # Save credentials for next time
+        with open(token_path, 'w') as token:
+            token.write(creds.to_json())
+
+    return build('calendar', 'v3', credentials=creds)
+
+
+def upload_to_google_calendar(ics_file_path):
+    """Parse the ICS file and upload events to Google Calendar."""
+    service = authenticate_google_calendar()
+
+    with open(ics_file_path, 'r') as ics_file:
+        content = ics_file.read()
+        calendars = Calendar.parse_multiple(content)  # Parse multiple calendars
+
+
+    for calendar in calendars:
+        for event in calendar.events:
+            google_event = {
+                'summary': event.name,
+                'location': event.location if event.location else '',
+                'description': event.description if event.description else '',
+                'start': {
+                    'dateTime': event.begin.format('YYYY-MM-DDTHH:mm:ss'),
+                    'timeZone': 'UTC',  # Adjust time zone as needed
+                },
+                'end': {
+                    'dateTime': event.end.format('YYYY-MM-DDTHH:mm:ss'),
+                    'timeZone': 'UTC',  # Adjust time zone as needed
+                },
+            }
+            # Insert event into Google Calendar
+            service.events().insert(calendarId='primary', body=google_event).execute()
+
+    print(f"Uploaded events to Google Calendar.")
+
 
 def authenticate(page):
     username = os.getenv("ZEUS_USERNAME")
@@ -21,6 +81,7 @@ def authenticate(page):
     page.fill("#i0118", password)
     page.press("#i0118", "Enter")
 
+
 def setup_browser():
     browser_path = "/snap/bin/brave"
     playwright = sync_playwright().start()
@@ -30,6 +91,7 @@ def setup_browser():
         headless=False
     )
     return browser, playwright
+
 
 def navigate_and_download(page):
     page.goto("https://zeus.ionis-it.com/home")
@@ -60,12 +122,18 @@ def navigate_and_download(page):
         download_path = os.path.join(os.path.expanduser("~"), "Downloads", download.suggested_filename)
         download.save_as(download_path)
 
+    return download_path
+
+
 def main():
     browser, playwright = setup_browser()
     page = browser.new_page()
-    navigate_and_download(page)
+    download_file = navigate_and_download(page)
     browser.close()
     playwright.stop()
+
+    upload_to_google_calendar(download_file)
+
 
 if __name__ == "__main__":
     main()
