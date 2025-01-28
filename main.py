@@ -14,7 +14,6 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 def authenticate_google_calendar():
     """Authenticate with Google Calendar API and return a service object."""
     creds = None
-    # Token storage
     token_path = 'token.json'
 
     if os.path.exists(token_path):
@@ -40,7 +39,7 @@ def upload_to_google_calendar(ics_file_path):
 
     with open(ics_file_path, 'r') as ics_file:
         content = ics_file.read()
-        calendars = Calendar.parse_multiple(content)  # Parse multiple calendars
+        calendars = Calendar.parse_multiple(content)
 
 
     for calendar in calendars:
@@ -101,6 +100,9 @@ def navigate_and_download(page):
 
     # Wait for navigation after login
     page.wait_for_load_state("networkidle")
+
+    # Go to next week
+    # page.click("button.btn[_ngcontent-wwo-c68][mwlcalendarnextview]")
 
     # Generate an ICS button
     page.click("button.btn.btn-primary-custom.mt-3")
